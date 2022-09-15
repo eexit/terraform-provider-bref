@@ -49,7 +49,7 @@ func dataSourceLambdaLayer() *schema.Resource {
 func extraDataSourceLambdaLayer() *schema.Resource {
 	return &schema.Resource{
 		// This description is used by the documentation generator and the language server.
-		Description: "Bref PHP Lambda layer for published runtime version.",
+		Description: "Bref PHP Extra Lambda layer for published runtime version.",
 
 		ReadContext: dataSourceLambdaLayerReadProvider("bref_extra_lambda_layer"),
 
@@ -109,10 +109,22 @@ func dataSourceLambdaLayerReadProvider(source string) schema.ReadContextFunc {
 		}
 
 		regions := layers[layerName].(map[string]interface{})
-		version, err := strconv.Atoi(regions[client.Region].(string))
-		if err != nil {
+		var version int
+
+		// We do this type conversion because some versions are float64 and some
+		// others are strings. Terraform spec expects int.
+		switch t := regions[client.Region].(type) {
+		case string:
+			version, err = strconv.Atoi(t)
+			if err != nil {
+				return diag.Errorf("Unable to locate a Bref v%s lambda layer version for %s in %s region", client.Version, layerName, client.Region)
+			}
+		case float64:
+			version = int(t)
+		default:
 			return diag.Errorf("Unable to locate a Bref v%s lambda layer version for %s in %s region", client.Version, layerName, client.Region)
 		}
+
 		arn := fmt.Sprintf("arn:aws:lambda:%s:%s:layer:%s:%d", client.Region, accountId, layerName, version)
 
 		if err := d.Set("version", version); err != nil {
