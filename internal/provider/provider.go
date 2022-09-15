@@ -2,8 +2,13 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+	"time"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -92,5 +97,71 @@ func configure(version string, p *schema.Provider) func(context.Context, *schema
 		}
 
 		return &apiClient, nil
+	}
+}
+
+func readerContextFuncProvider(source string) schema.ReadContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+		// use the meta value to retrieve your client from the provider configure method
+		client := meta.(*apiClient)
+		ch := cleanhttp.DefaultPooledClient()
+
+		layerName := d.Get("layer_name").(string)
+
+		var diags diag.Diagnostics
+		url := client.URLs[source]
+		accountId := client.AccountIds[source]
+
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return diag.Errorf("Unable to build request for %s version of Bref runtime layers", client.Version)
+		}
+
+		r, err := ch.Do(req)
+		if err != nil {
+			return diag.Errorf("Error retrieving Bref runtime layers: %s", err.Error())
+		}
+		defer r.Body.Close()
+
+		var layers map[string]interface{}
+		err = json.NewDecoder(r.Body).Decode(&layers)
+		if err != nil {
+			return diag.Errorf("Error parsing Bref runtime layers: %s", err.Error())
+		}
+
+		regions := layers[layerName].(map[string]interface{})
+		var version int
+
+		// We do this type conversion because some versions are float64 and some
+		// others are strings. Terraform spec expects int.
+		switch t := regions[client.Region].(type) {
+		case string:
+			version, err = strconv.Atoi(t)
+			if err != nil {
+				return diag.Errorf("Unable to locate a Bref v%s lambda layer version for %s in %s region", client.Version, layerName, client.Region)
+			}
+		case float64:
+			version = int(t)
+		default:
+			return diag.Errorf("Unable to locate a Bref v%s lambda layer version for %s in %s region", client.Version, layerName, client.Region)
+		}
+
+		arn := fmt.Sprintf("arn:aws:lambda:%s:%s:layer:%s:%d", client.Region, accountId, layerName, version)
+
+		if err := d.Set("version", version); err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err := d.Set("arn", arn); err != nil {
+			return diag.FromErr(err)
+		}
+
+		if err := d.Set("layer_arn", arn); err != nil {
+			return diag.FromErr(err)
+		}
+
+		d.SetId(strconv.FormatInt(time.Now().Unix(), 10))
+
+		return diags
 	}
 }
