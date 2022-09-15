@@ -1,4 +1,4 @@
-module github.com/UGNS/terraform-provider-bref
+module github.com/eexit/terraform-provider-bref
 
 go 1.15
 

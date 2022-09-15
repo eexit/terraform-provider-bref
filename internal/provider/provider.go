@@ -42,7 +42,7 @@ func New(version string) func() *schema.Provider {
 				"bref_version": {
 					Type:        schema.TypeString,
 					Required:    true,
-					DefaultFunc: schema.EnvDefaultFunc("BREF_VERSION", "1.2.0"),
+					DefaultFunc: schema.EnvDefaultFunc("BREF_VERSION", "1.5.0"),
 					Description: "The Bref PHP runtime version to work with. Can be specified with the " +
 						"`BREF_VERSION` environment variable.",
 				},

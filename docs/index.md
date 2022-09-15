@@ -23,8 +23,9 @@ provider "bref" {
 
 ### Required
 
-- **region** (String) AWS Region of Bref PHP runtime layers. Can be specified with the `AWS_REGION` or `AWS_DEFAULT_REGION` environment variable.
+- `region` (String) AWS Region of Bref PHP runtime layers. Can be specified with the `AWS_REGION` or `AWS_DEFAULT_REGION` environment variable.
 
 ### Optional
 
-- **bref_version** (String) The Bref PHP runtime version to work with. Can be specified with the `BREF_VERSION` environment variable.
+- `bref_extra_version` (String) The Bref Extra PHP runtime version to work with. Can be specified with the `BREF_EXTRA_VERSION` environment variable.
+- `bref_version` (String) The Bref PHP runtime version to work with. Can be specified with the `BREF_VERSION` environment variable.
