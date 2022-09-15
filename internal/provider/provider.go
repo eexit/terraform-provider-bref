@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -45,9 +46,17 @@ func New(version string) func() *schema.Provider {
 					Description: "The Bref PHP runtime version to work with. Can be specified with the " +
 						"`BREF_VERSION` environment variable.",
 				},
+				"bref_extra_version": {
+					Type:        schema.TypeString,
+					Required:    true,
+					DefaultFunc: schema.EnvDefaultFunc("BREF_EXTRA_VERSION", "0.11.34"),
+					Description: "The Bref Extra PHP runtime version to work with. Can be specified with the " +
+						"`BREF_EXTRA_VERSION` environment variable.",
+				},
 			},
 			DataSourcesMap: map[string]*schema.Resource{
-				"bref_lambda_layer": dataSourceLambdaLayer(),
+				"bref_lambda_layer":       dataSourceLambdaLayer(),
+				"bref_extra_lambda_layer": extraDataSourceLambdaLayer(),
 			},
 			ResourcesMap: map[string]*schema.Resource{},
 		}
@@ -59,17 +68,27 @@ func New(version string) func() *schema.Provider {
 }
 
 type apiClient struct {
-	Region    string
-	Version   string
-	AccountId string
+	Region       string
+	Version      string
+	ExtraVersion string
+	AccountIds   map[string]string
+	URLs         map[string]string
 }
 
 func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 		apiClient := apiClient{
-			Region:    d.Get("region").(string),
-			Version:   d.Get("bref_version").(string),
-			AccountId: "209497400698",
+			Region:       d.Get("region").(string),
+			Version:      d.Get("bref_version").(string),
+			ExtraVersion: d.Get("bref_extra_version").(string),
+			AccountIds: map[string]string{
+				"bref_lambda_layer":       "209497400698",
+				"bref_extra_lambda_layer": "403367587399",
+			},
+			URLs: map[string]string{
+				"bref_lambda_layer":       fmt.Sprintf("https://raw.githubusercontent.com/brefphp/bref/%s/layers.json", d.Get("bref_version").(string)),
+				"bref_extra_lambda_layer": fmt.Sprintf("https://raw.githubusercontent.com/brefphp/extra-php-extensions/%s/layers.json", d.Get("bref_extra_version").(string)),
+			},
 		}
 
 		return &apiClient, nil
