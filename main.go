@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/UGNS/terraform-provider-bref/internal/provider"
+	"github.com/eexit/terraform-provider-bref/internal/provider"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
@@ -38,7 +38,7 @@ func main() {
 
 	if debugMode {
 		// TODO: update this string with the full name of your provider as used in your configs
-		err := plugin.Debug(context.Background(), "registry.terraform.io/UGNS/bref", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/eexit/bref", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
